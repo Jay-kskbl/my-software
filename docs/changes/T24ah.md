@@ -16,7 +16,7 @@
 | `backend/app/db/migrations/env.py` | `_database_url()` → `_database_url_and_timeout()` | 只返回地址 | 正常使用时读配置的超时；测试传入地址时用 5 秒 | `alembic upgrade head` 同理 |
 | `.env.example` | 后端可选 | — | `DATABASE_CONNECT_TIMEOUT_SECONDS=5` 及说明 | GLOBAL §11.2 |
 | `backend/tests/unit/test_auth_api.py` | 新增 1 项 | — | 开一个只 `listen()`、从不回应的端口：TCP 由内核接下，PostgreSQL 握手永远等不到回复，在 macOS 上复现 Windows 的“一直等”。设超时 2 秒，`/api/auth/me` 要在 15 秒内返回 503；请求放在线程里、最多等 30 秒，没有超时就失败而不是挂死 pytest | — |
-| `backend/tests/unit/test_db_session.py` | 新增 1 项 | — | 拦下 `dialect.connect`，确认 `connect_timeout=7` 传到了驱动 | — |
+| `backend/tests/unit/test_db_session.py` | 新增 2 项（2026-11-26 T24ak 更正，原来误写 1 项） | — | 拦下 `dialect.connect`，确认 `connect_timeout=7` 传到了驱动；不传 `connect_timeout_seconds` 时报 `TypeError` | — |
 | `backend/tests/unit/test_config.py` | 默认值 | — | 断言默认 5；`clean_env` 清掉这个变量 | — |
 | `backend/tests/unit/test_consistency.py`、`test_requeue_failed.py` | 假的 settings、假的 `make_engine` | `SimpleNamespace` 没有超时字段；假函数只收一个参数 | 补上字段、假函数接受关键字参数 | 跟着接口改 |
 | `backend/tests/integration/conftest.py` | `empty_engine` | `make_engine(url)` | 传 5 秒 | 跟着接口改 |

@@ -17,6 +17,7 @@
 - 增补：2026-11-25 按 Barry 的要求重排第 17.1 节的执行顺序，各节步骤没有改
 
 - 增补：2026-11-25 前端整体放入（T24ba–T24be，T24bg）：新增第 17.18 节（界面更新），第 17.1、17.2、17.12、17.13、14.2 节补上对应内容；第 10.2 节第 2、4、8、9 项和第 10.5 节只加注，原文保留（W4 是在改动前的界面上执行的）
+- 增补：2026-11-26 W9 核对之后的修复（T24ah 数据库连接超时、T24ai 测试写法、T24aj `git_dirty`）：新增第 18 节 W10，安排这三项在 Windows 上的验证，以及 W9 没做完的第 17.6 节第 3a 步、第 17.9 节 backend 6 项；第 17.1 节的 2026-11-26 更新加了指向第 18 节的说明
 
 本任务书有九项任务。**W1–W8 的执行顺序以第 0.4 节为准，W9 以第 17.1 节为准**（W4 于 2026-11-21 14:26 添加，W5 于 14:37 添加，W6、W7 于 19:40 添加，W8 于 21:20 添加，W9 于 2026-11-23 添加；W1–W8 已执行，状态见第 0.1 节）：
 
@@ -1486,7 +1487,7 @@ Copy-Item experiments\docvqa\datasets\document_map.csv "$out\missed\document_map
 | W8 16.8 对照组 embed | 实际是重试后 `failed` | 这是设计行为，第 16.8 节的预期已更正，**不重测** |
 | T24v–T24z 登录页 | 在 `fd0b5eb` 之后提交，没有测过 | 第 17.6 节与真实后端联调 |
 
-**2026-11-26 更新（W9 结果，核对见 `docs/changes/windows-2026-11-26-核对.md`）：** 上表第 2–9 步都已完成。还剩：① Barry 本人的 17.7、17.10、17.11；② 17.9 的 backend 6 项——权限已经有了，只是指定的 `--basetemp` 目录不存在，换一个存在的目录重跑（`New-Item -ItemType Directory -Force <目录>` 之后再跑第 12.3 节的命令）；③ 17.6 第 3a 步要等 Bug 1 修复后重测。
+**2026-11-26 更新（W9 结果，核对见 `docs/changes/windows-2026-11-26-核对.md`）：** 上表第 2–9 步都已完成。还剩：① Barry 本人的 17.7、17.10、17.11；② 17.9 的 backend 6 项——权限已经有了，只是指定的 `--basetemp` 目录不存在，换一个存在的目录重跑（`New-Item -ItemType Directory -Force <目录>` 之后再跑第 12.3 节的命令）；③ 17.6 第 3a 步要等 Bug 1 修复后重测。**（2026-11-26 再更新：Bug 1 已由 T24ah 修复；②、③ 改到第 18 节 W10 做，见第 18.4、18.5 节。）**
 
 **执行顺序（2026-11-25 重排：刚改过、影响最大的代码先验证；各节内容没有变）：**
 
@@ -1886,3 +1887,94 @@ s.save(d / "scan6.pdf", deflate=True)
 ### 17.13 怎样算测试成功
 
 仍按第 0.5 节的三条判定。本节里有通过或失败之分的是 17.3、17.4、17.5、17.6、17.7、17.9、17.18；其余是测量或样本，**数据完整、来源可查就算完成**，结论由 Claude 核对后写进核对记录和 `docs/untested.md`。哪一项做不到，写明卡在哪里，继续做不依赖它的部分。**SHA-256 请对仓库里提交的文件算**（提交之后再算，或者统一换成 LF 后再算）：第二轮有 291 个文本文件的 hash 是对 CRLF 签出的工作区文件算的，Claude 要先换成 CRLF 才能对上。
+
+------------------------------------------------------------------------
+
+## 18. W10：W9 之后的修复（T24ah–T24aj）与剩下的补测（2026-11-26 添加）
+
+来源：W9 核对（`docs/changes/windows-2026-11-26-核对.md`）发现的 Bug 1、Bug 2、`git_dirty`，Mac 上已由 T24ah、T24ai、T24aj 修好（修改记录 `docs/changes/T24ah.md`、`T24ai.md`、`T24aj.md`），都还没在 Windows 上跑过；另有 W9 没做完的第 17.6 节第 3a 步和第 17.9 节 backend 6 项。规则同 W9：只测量和核对，不改代码和配置文件；环境变量只在窗口里临时设；结果与预期不符时，记下现象和完整输出，问 Barry。原始数据放进 `output/windows-w10/`，报告写进 `output/windows-w10/summary.txt`。第 17.7、17.10、17.11 节（Barry 本人）不变，不在本节重复。
+
+### 18.1 执行顺序
+
+| 顺序 | 内容 | 谁做 | 依赖 | 预计耗时 |
+|---|---|---|---|---|
+| 1 | 第 18.2 节：拉取、确认基线 | GPT | — | 10 分钟 |
+| 2 | 第 18.3 节：backend 全套测试（含集成测试） | GPT | 1 | 40 分钟 |
+| 3 | 第 18.4 节：backend 6 项符号链接测试 | GPT 或 Barry | 1 | 10 分钟 |
+| 4 | 第 18.5 节：数据库停掉时的接口与命令行（Bug 1 重测，含第 17.6 节第 3a 步） | GPT | 1 | 40 分钟 |
+| 5 | 第 18.6 节：`git_dirty` | GPT | 1 | 10 分钟 |
+| 6 | 按第 14.1 节整理 `output/windows-w10/`、提交；Barry 推送 | GPT、Barry | 全部 | 20 分钟 |
+
+### 18.2 基线
+
+1. `git pull`，确认是快进。`git log --oneline | Select-String "T24ah|T24ai|T24aj"` 要能各找到一条。提交号按第 14.1 节的格式写进 `output/windows-w10/git-head.txt`。
+2. 先 `New-Item -ItemType Directory -Force output\windows-w10`（重定向不会自己建目录）。
+
+### 18.3 backend 全套测试
+
+**为什么：** T24ah 改了 `make_engine()` 的参数，集成测试的夹具 `tests/integration/conftest.py` 和 Alembic 迁移入口 `app/db/migrations/env.py` 都跟着改了，Mac 上没有 PostgreSQL，没跑过；T24ai 改写了 W9 里在 Windows 上失败的 `test_database_address_is_hidden`。
+
+1. 按第 12.2 节的做法，在 `backend/` 下设好 `TEST_DATABASE_URL`（指向空的 `docmgr_test`），跑全套 pytest，JUnit 存成 `output/windows-w10/backend.xml`，并导出 `backend-collect.txt`。**`--basetemp` 指定的目录要先建好**（W9 的 6 项符号链接就是因为它不存在才没跑起来）：
+
+   ```powershell
+   New-Item -ItemType Directory -Force w10-data\pytest-tmp-backend
+   ..\.venv-main\Scripts\python -m pytest --basetemp=..\w10-data\pytest-tmp-backend --junitxml=..\output\windows-w10\backend.xml
+   ```
+
+   `w10-data\` 放在仓库根目录下、不提交（和 W9 的 `w9-data\` 一样）；路径按自己的实际位置改，关键是目录事先存在。
+2. 同样在 `backend/` 下跑 ruff：`ruff check . ; ruff format --check .`，输出存成 `ruff.txt`。
+
+**预期：** 0 failed、0 skipped（这次符号链接的 6 项也应通过；如果仍因权限失败，记下来，不影响其余判断）。共 1056 项（Mac 上收集的数），比 W9 的 1052 项多 4 项（T24ah 3 项：`test_auth_api.py::test_database_that_never_answers_gives_503_within_timeout`、`test_db_session.py::test_engine_passes_connect_timeout_to_psycopg`、`test_db_session.py::test_connect_timeout_is_required`；T24aj 1 项：`test_experiment_framework.py::test_git_dirty_ignores_untracked_files`），以 `backend-collect.txt` 为准。`test_task_errors.py::test_database_address_is_hidden` **必须通过**（它不再连网络）。ruff 通过。
+
+### 18.4 backend 6 项符号链接测试（改良第 17.9 节）
+
+W9 里 `whoami /priv` 已经能看到 `SeCreateSymbolicLinkPrivilege`，shared 的 2 项通过；backend 的 6 项是因为 `--basetemp` 目录不存在（`WinError 3`）没跑起来。第 18.3 节的全套测试已经包含这 6 项；如果那里因为别的原因没跑成，就单独跑：
+
+```powershell
+# 仓库根目录
+New-Item -ItemType Directory -Force w10-data\pytest-tmp-symlink
+whoami /priv | Select-String SeCreateSymbolicLink | Out-File -Encoding utf8 output\windows-w10\symlink-priv.txt
+# backend/ 下（命令即第 12.3 节的那条，只多了 --basetemp）
+..\.venv-main\Scripts\python -m pytest --basetemp=..\w10-data\pytest-tmp-symlink --junitxml=..\output\windows-w10\symlink-backend.xml "tests/unit/test_consistency.py::test_symlinks_are_never_treated_as_stored_files" "tests/unit/test_storage.py::test_file_symlink_pointing_outside_rejected" "tests/unit/test_storage.py::test_directory_symlink_pointing_outside_rejected" "tests/unit/test_storage.py::test_put_refuses_to_write_through_directory_symlink" "tests/unit/test_storage.py::test_symlinked_temp_directory_refused_at_startup"
+```
+
+**预期：** 6 passed（`test_directory_symlink_pointing_outside_rejected` 有两个参数）。执行方的沙箱账号仍然建不了符号链接时，交给 Barry 在自己的终端里跑同一条命令。
+
+### 18.5 数据库停掉时的接口与命令行（T24ah，Bug 1 重测）
+
+**为什么：** W9 第 17.6 节第 3a 步：后端开着、PostgreSQL 停掉，`/api/auth/me` 超过 90 秒不返回。T24ah 给后端的数据库连接加了超时（新配置 `DATABASE_CONNECT_TIMEOUT_SECONDS`，默认 5 秒，见 `.env.example`），超时后返回 503 `DATABASE_UNAVAILABLE`；四个命令行工具和 `alembic` 也用这个超时。通用 Worker 处理任务时用 `WORKER_DB_CONNECT_TIMEOUT_SECONDS`（默认 10）。Mac 上连被拒绝的端口会立刻失败，测不出原来的问题，只用“只接受连接、从不回应”的端口在单元测试里复现过。
+
+用 W9 第 17.6 节的那一套（`docmgr_ui`、`npm run dev` 的前端、管理员账号）。截图存到 `output/windows-w10/dbdown/`，每一步的完整输出存成 `dbdown-<步骤>.txt`，耗时和退出码汇总到 `dbdown.json`。
+
+| # | 操作 | 预期 |
+|---|---|---|
+| A | 后端、PostgreSQL 都开着，用第 12.6 节第 3 步的写法登录拿到 `$tok`；然后停掉 PostgreSQL 服务，计时请求一次：`Measure-Command { try { Invoke-WebRequest -Uri http://127.0.0.1:8000/api/auth/me -Headers @{Authorization="Bearer $tok"} -TimeoutSec 120 } catch { $_.Exception.Response.StatusCode.value__; $_.ErrorDetails.Message } }` | 返回 503，正文 `code` 为 `DATABASE_UNAVAILABLE`；耗时约 5 秒，**不超过 15 秒**（连接池先检查旧连接、再新建连接，最坏可能各等一次超时） |
+| B | 同样停着 PostgreSQL，重复 A 的请求 3 次 | 每次都是 503，耗时都在 15 秒以内；记下 3 次的耗时 |
+| C | 第 17.6 节第 3 步（即 W9 的 3a）：浏览器里刷新文件页 | 保留令牌，显示“暂时连不上服务器，登录状态已保留……”；再清掉令牌打开 `/login`：显示 T24z 的“后端已启动，但数据库不可用……”。记下打开页面到提示出现大约几秒（预期 15 秒以内） |
+| D | 第 17.6 节第 4 步：启动 PostgreSQL，点“重新检查” | 提示消失；再请求一次 A，返回 200 |
+| E | 新开一个窗口，设 `$env:DATABASE_CONNECT_TIMEOUT_SECONDS = "2"`，在这个窗口重启后端；停掉 PostgreSQL，重复 A | 503，耗时约 2 秒，不超过 6 秒。做完关掉这个窗口，用原来的设置重启后端 |
+| F | PostgreSQL 停着，在 `backend/` 下计时运行 `python -m app.modules.consistency check` 和 `alembic current`（窗口里的变量指向 `docmgr_ui`、`ui_`） | 两条都在 15 秒内结束，退出码非 0，提示数据库连不上，不挂着 |
+| G | 做完启动 PostgreSQL，`python -m app.modules.consistency check` | 退出码 0，和停机前一样 |
+
+**Claude 怎么判断：** A、B、E 的状态码与耗时，C 的截图与耗时，F 的退出码与耗时。都符合，才从 `docs/untested.md` 第 7.5 节删掉 Bug 1 一行的“未测试”部分，并在 DEVPLAN 的 T24ah 记录里写上 Windows 结果。
+
+### 18.6 `git_dirty`（T24aj）
+
+**为什么：** W9 里 `output/` 下的未跟踪目录让实验记录的 `git_dirty` 每次都是 true。T24aj 改为只看已跟踪文件。
+
+1. 在仓库根目录：`git status --porcelain` 和 `git status --porcelain --untracked-files=no` 的输出分别存成 `git-status-all.txt`、`git-status-tracked.txt`。预期：前者有 `??` 开头的行（至少有 `output/windows-w10/`），后者为空。如果后者不为空，说明有已跟踪的文件被改过，先记下来、问 Barry，不要自己还原。
+2. 在 `backend/` 下：`..\.venv-main\Scripts\python -c "from app.modules.experiments.environment import machine_info; print(machine_info()['git_dirty'])"`，输出存成 `git-dirty.txt`。预期：后者为空时打印 `False`。
+3. 如果这次顺便跑了任何实验（不要求专门跑），打开结果目录里的 `config.json`，`machine.git_dirty` 应为 `false`。
+
+### 18.7 验收标准
+
+- [ ] 18.2：`git-head.txt` 的提交包含 T24ah、T24ai、T24aj
+- [ ] 18.3：`backend.xml` 0 failed、0 skipped，`test_database_address_is_hidden` 通过，新增的 4 项都在且通过；`backend-collect.txt`、`ruff.txt` 在
+- [ ] 18.4：backend 6 项符号链接 passed（在 18.3 里或单独跑），`symlink-priv.txt` 在
+- [ ] 18.5：A–G 都有输出或截图，`dbdown.json` 有每一步的耗时和状态码（或退出码）
+- [ ] 18.6：`git-status-all.txt`、`git-status-tracked.txt`、`git-dirty.txt` 都在
+- [ ] 全程没有改代码和配置文件；`output/windows-w10/` 有 `git-head.txt`、`commands.txt`、`SHA256SUMS.txt`（SHA-256 的算法同第 17.13 节）
+
+### 18.8 怎样算测试成功
+
+仍按第 0.5 节的三条判定。有通过或失败之分的是 18.3、18.4、18.5、18.6。哪一项做不到，写明卡在哪里，继续做不依赖它的部分。
