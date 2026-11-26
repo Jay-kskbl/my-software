@@ -103,7 +103,9 @@ def main(argv: list[str] | None = None) -> int:
         print(exc, file=sys.stderr)
         return 1
 
-    engine = make_engine(settings.database_url)
+    engine = make_engine(
+        settings.database_url, connect_timeout_seconds=settings.database_connect_timeout_seconds
+    )
     client = client_from_settings(settings)
     try:
         with make_session_factory(engine)() as session:

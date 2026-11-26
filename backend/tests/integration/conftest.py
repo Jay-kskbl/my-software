@@ -40,7 +40,7 @@ def alembic_config(test_database_url: str) -> Config:
 @pytest.fixture
 def empty_engine(test_database_url: str):
     """一个确认为空的数据库；测试结束后清空，保证每个测试互不影响。"""
-    engine = make_engine(test_database_url)
+    engine = make_engine(test_database_url, connect_timeout_seconds=5)
     existing = inspect(engine).get_table_names()
     if existing:
         engine.dispose()

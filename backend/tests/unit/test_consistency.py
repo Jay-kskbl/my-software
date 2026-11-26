@@ -969,9 +969,13 @@ def cli(monkeypatch, tmp_path):
         applied.append((list(selected), kwargs["client"]))
         return RepairReport(done=["已重建"])
 
-    settings = SimpleNamespace(database_url="postgresql://x", storage_root=tmp_path)
+    settings = SimpleNamespace(
+        database_url="postgresql://x", database_connect_timeout_seconds=5, storage_root=tmp_path
+    )
     monkeypatch.setattr(cli_main, "load_settings", lambda: settings)
-    monkeypatch.setattr(cli_main, "make_engine", lambda url: SimpleNamespace(dispose=lambda: None))
+    monkeypatch.setattr(
+        cli_main, "make_engine", lambda url, **_kw: SimpleNamespace(dispose=lambda: None)
+    )
     monkeypatch.setattr(cli_main, "make_session_factory", lambda engine: _FakeSessionFactory())
     monkeypatch.setattr(cli_main, "client_from_settings", lambda s: FakeClient())
     monkeypatch.setattr(cli_main, "collect_db", lambda session: snapshot.db)

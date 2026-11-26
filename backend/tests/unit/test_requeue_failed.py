@@ -196,7 +196,11 @@ def test_config_error_exits_1(monkeypatch, capsys):
 
 def test_database_error_exits_1_without_leaking_the_address(monkeypatch, capsys):
     monkeypatch.setattr(
-        cli, "load_settings", lambda: SimpleNamespace(database_url="postgresql://u:secret@h:1/d")
+        cli,
+        "load_settings",
+        lambda: SimpleNamespace(
+            database_url="postgresql://u:secret@h:1/d", database_connect_timeout_seconds=5
+        ),
     )
 
     def unreachable(_session, _kind):

@@ -29,7 +29,11 @@ class TaskContext:
 def task_context() -> Iterator[TaskContext]:
     """按当前环境的配置建立一套资源，退出时关闭。"""
     settings = load_settings()
-    engine = make_engine(settings.database_url)
+    # 与 Worker 启动检查用同一个超时（T24k、T24ah）
+    engine = make_engine(
+        settings.database_url,
+        connect_timeout_seconds=settings.worker_db_connect_timeout_seconds,
+    )
     try:
         with (
             make_session_factory(engine)() as session,

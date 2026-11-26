@@ -17,14 +17,22 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def _database_url() -> str:
+# 测试传入地址时不读项目配置，用这个值；与 DATABASE_CONNECT_TIMEOUT_SECONDS 的默认值相同
+_TEST_CONNECT_TIMEOUT_SECONDS = 5
+
+
+def _database_url_and_timeout() -> tuple[str, int]:
     # 测试通过 config.attributes 传入测试库地址；正常使用时读取项目配置
     url = config.attributes.get("database_url")
-    return url if url else load_settings().database_url
+    if url:
+        return url, _TEST_CONNECT_TIMEOUT_SECONDS
+    settings = load_settings()
+    return settings.database_url, settings.database_connect_timeout_seconds
 
 
 def run_migrations() -> None:
-    engine = make_engine(_database_url())
+    url, timeout = _database_url_and_timeout()
+    engine = make_engine(url, connect_timeout_seconds=timeout)
     with engine.connect() as connection:
         context.configure(
             connection=connection,

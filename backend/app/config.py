@@ -36,6 +36,10 @@ class Settings(BaseSettings):
 
     # ---- 可选 ----
     health_check_timeout_seconds: float = Field(default=2.0, gt=0)
+    # API 与命令行工具连接数据库最多等多久（秒，libpq 的 connect_timeout 只接受整数，
+    # 最小有效值 2）。
+    # 不设时 Windows 上数据库停掉后接口会一直挂着；超时后接口返回 503（T24ah）
+    database_connect_timeout_seconds: int = Field(default=5, ge=2, le=300)
     # 调用 OpenSearch 的超时（建索引、批量写入、删除、查询）
     opensearch_timeout_seconds: float = Field(default=10.0, gt=0)
     # embed 任务调用 CLIP 服务编码一张图片的超时（T21）。服务一次只算一个请求，

@@ -140,3 +140,43 @@ def test_valid_token_when_database_is_down_is_503(client):
     resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
 
     assert_error(resp, 503, "DATABASE_UNAVAILABLE")
+
+
+def test_database_that_never_answers_gives_503_within_timeout(tmp_path):
+    # T24ah：Windows 上连被拒绝的端口不会立刻失败，而是一直等（W9 17.6）。
+    # 这里用一个只监听、从不回应的端口在任何系统上复现“一直等”：TCP 连接由内核接下，
+    # 但 PostgreSQL 的握手永远等不到回复。没有连接超时时，这个请求会一直挂着。
+    import threading
+    import time
+
+    with socket.socket() as silent:
+        silent.bind(("127.0.0.1", 0))
+        silent.listen(8)
+        port = silent.getsockname()[1]
+        settings = Settings(
+            _env_file=None,
+            database_url=f"postgresql://u:secret-pw@127.0.0.1:{port}/db",
+            opensearch_url=f"http://127.0.0.1:{port}",
+            clip_service_url=f"http://127.0.0.1:{port}",
+            jwt_secret=SECRET,
+            storage_root=tmp_path / "storage",
+            database_connect_timeout_seconds=2,
+        )
+        token = create_access_token(uuid.uuid4(), secret=SECRET, expires_in_seconds=60)
+        result: dict = {}
+
+        def call() -> None:
+            with TestClient(create_app(settings)) as c:
+                started = time.monotonic()
+                result["resp"] = c.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+                result["elapsed"] = time.monotonic() - started
+
+        worker = threading.Thread(target=call, daemon=True)
+        worker.start()
+        # 放宽到 30 秒，只为了没有超时时测试失败而不是挂死整个 pytest
+        worker.join(timeout=30)
+
+    assert not worker.is_alive(), "数据库不回应时请求一直挂着：连接超时没有生效"
+    assert_error(result["resp"], 503, "DATABASE_UNAVAILABLE")
+    # pool_pre_ping 和真正的连接各可能等一次超时，留出余量
+    assert result["elapsed"] < 15

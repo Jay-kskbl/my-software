@@ -35,7 +35,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise SystemExit(1) from exc
 
     # 创建引擎不会立刻连接数据库：数据库没启动时服务仍能起来，由 /health 如实报告
-    engine = make_engine(settings.database_url)
+    engine = make_engine(
+        settings.database_url, connect_timeout_seconds=settings.database_connect_timeout_seconds
+    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:

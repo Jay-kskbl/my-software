@@ -24,6 +24,7 @@ def clean_env(monkeypatch):
         "WORKER_LEASE_SECONDS",
         "WORKER_HEARTBEAT_SECONDS",
         "PDF_OCR_MIN_CHARS",
+        "DATABASE_CONNECT_TIMEOUT_SECONDS",
     ]:
         monkeypatch.delenv(name, raising=False)
     return monkeypatch
@@ -37,6 +38,7 @@ def test_loads_when_all_required_present(clean_env):
 
     assert settings.database_url == REQUIRED["DATABASE_URL"]
     assert settings.health_check_timeout_seconds == 2.0
+    assert settings.database_connect_timeout_seconds == 5
 
 
 @pytest.mark.parametrize("missing", list(REQUIRED))
