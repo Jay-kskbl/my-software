@@ -384,3 +384,31 @@ def test_machine_info_is_collected_without_extra_packages():
     assert all(len(h) == 64 for h in versions["mapping_sha256"].values())
     # 三个索引的结构都记录（T24 补上图片向量索引）
     assert set(versions["mapping_sha256"]) == {"doc_meta", "chunks", "image_vectors"}
+
+
+def test_git_dirty_ignores_untracked_files(tmp_path, monkeypatch):
+    # T24aj：未跟踪的输出目录不算“工作区不干净”；已跟踪文件改了才算
+    import subprocess
+
+    from app.modules.experiments import environment
+
+    def git(*args: str) -> None:
+        subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+
+    git("init", "-q")
+    (tmp_path / "code.py").write_text("x = 1\n", encoding="utf-8")
+    git("add", "code.py")
+    git("commit", "-q", "-m", "init")
+    monkeypatch.setattr(environment, "PROJECT_ROOT", tmp_path)
+
+    (tmp_path / "output").mkdir()
+    (tmp_path / "output" / "result.txt").write_text("raw", encoding="utf-8")
+    assert environment.machine_info()["git_dirty"] is False
+
+    (tmp_path / "code.py").write_text("x = 2\n", encoding="utf-8")
+    assert environment.machine_info()["git_dirty"] is True

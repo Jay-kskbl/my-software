@@ -61,7 +61,9 @@ def _sha256(path: Path) -> str | None:
 
 
 def machine_info() -> dict[str, Any]:
-    status = _git("status", "--porcelain")
+    # 只看已跟踪的文件：未跟踪的输出目录（如 Windows 上的 output/）不改变运行的代码，
+    # 算进去的话这个标志总是 true、失去意义（W9 核对，T24aj）
+    status = _git("status", "--porcelain", "--untracked-files=no")
     return {
         "platform": platform.platform(),
         "machine": platform.machine(),
@@ -70,7 +72,7 @@ def machine_info() -> dict[str, Any]:
         "memory_bytes": _memory_bytes(),
         "python": platform.python_version(),
         "git_commit": _git("rev-parse", "HEAD"),
-        # 有未提交的改动时，提交号不能完整说明运行的是哪份代码
+        # 已跟踪的文件有未提交的改动时，提交号不能完整说明运行的是哪份代码
         "git_dirty": None if status is None else bool(status),
     }
 

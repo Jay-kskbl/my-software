@@ -264,6 +264,7 @@ BARRY zou/
 
 - [x] **T24ah 数据库连接超时，数据库停掉时接口返回 503**（来自 `docs/changes/windows-2026-11-26-核对.md` Bug 1，Barry 于 2026-11-26 批准“修bug1”）：`make_engine()` 必须传连接超时；新增 `DATABASE_CONNECT_TIMEOUT_SECONDS`（默认 5）
 - [x] **T24ai 测试不再依赖真实网络错误的文字**（同一核对记录 Bug 2，Barry 于 2026-11-26 批准“Fix both”）：`test_database_address_is_hidden` 改用写死的驱动错误文字
+- [x] **T24aj 实验记录的 `git_dirty` 只看已跟踪文件**（同一核对记录“其他”第 1 条，Barry 于 2026-11-26 批准“Fix both”）：`git status --porcelain --untracked-files=no`
 
 ### 阶段五：实验（W13–W15）
 
@@ -378,7 +379,7 @@ BARRY zou/
 - **待 Barry 决定（Windows W9 核对，2026-11-26 记录，见 `docs/changes/windows-2026-11-26-核对.md` 第 2 节）**
   - **（T24ah 已解决）Bug 1**：Windows 上数据库停掉、后端开着时，`/api/auth/me` 等接口一直挂着不返回。`backend/app/db/session.py` 的 `make_engine()` 没有连接超时；Windows 上 psycopg 连被拒绝的端口会等到超时为止。建议新增 `DATABASE_CONNECT_TIMEOUT_SECONDS`（默认 5），通过 `connect_args` 传给 psycopg，超时后按现有逻辑返回 503
   - （T24ai 已解决）Bug 2：`test_task_errors.py::test_database_address_is_hidden` 依赖真实网络错误，Windows 上失败；改用写死的错误文字
-  - 实验记录的 `git_dirty` 把未跟踪文件也算进去，Windows 上每次都是 true；改为只看已跟踪文件
+  - （T24aj 已解决）实验记录的 `git_dirty` 把未跟踪文件也算进去，Windows 上每次都是 true；改为只看已跟踪文件
 
 - **文档**
   - ~~项目根目录没有 `README.md`。GLOBAL §11.2 要求配置变化时同步更新 README，§14 的验收标准也要求 README；目前相关说明分散在 `CLAUDE.md` 和 `frontend/README.md` 里。T30 之前需要补。~~（Barry 于 2026-11-21 批准，T24q 已完成；部署细节留给 T30）
@@ -474,3 +475,4 @@ BARRY zou/
 | T24bh | 2026-11-25 | 74c950d | Barry 于 2026-11-25 批准（“改”）；不带 🔒。扫描区的“正在打开文件…”“正在阅读第 n / 6 个文件”合并为“正在检索…”，“正在整理答案…”改为“正在整理结果…”（英文同改）：6 是卡片数，系统也不打开文件、不生成答案（GLOBAL §8.1、§13）。只改前端文字，没有改后端、接口、附录 A，没有新依赖。已执行：测试先改，改之前 3 项失败；类型检查；前端 32 个文件 378 项通过（新增 2 项，检查中英文里没有计数和“阅读、打开、答案”）；生产构建里没有旧文字；浏览器对着真实 FastAPI + SQLite 替身：6 秒的检索跨两轮动画，中文依次是“正在检索…”“正在整理结果…”，英文对应，出错提示不变。后端没有改动，没有重跑。**未测试（Not Tested）**：同 T24be。修改记录 `docs/changes/T24bh.md` |
 | T24ah | 2026-11-26 | 619dea8 | Windows W9 核对 Bug 1，Barry 于 2026-11-26 批准（“修bug1”）；不带 🔒。`backend/app/db/session.py` 的 `make_engine()` 新增必填参数 `connect_timeout_seconds`，经 `connect_args` 交给 psycopg（`connect_timeout`）；API 和四个命令行工具（auth、consistency、documents、experiments）、Alembic 迁移用新配置 `DATABASE_CONNECT_TIMEOUT_SECONDS`（默认 5，整数 2–300），通用 Worker 处理任务的引擎沿用 `WORKER_DB_CONNECT_TIMEOUT_SECONDS`。超时后 psycopg 抛 `OperationalError`，API 按原有处理返回 503 `DATABASE_UNAVAILABLE`。没有改表结构、索引、接口、附录 A，没有新依赖。已执行（macOS，main 环境）：`backend/` 814 passed、241 skipped；ruff 通过。新增单元测试 2 项：用一个只监听、从不回应的端口在 macOS 上复现“一直等”，`/api/auth/me` 约 2 秒返回 503；引擎把 `connect_timeout` 传给驱动。反证：去掉 `connect_args` 后两项都失败（请求过 30 秒仍挂着）。**未测试（Not Tested）**：Windows 上重测 `windows任务书.md` 第 17.6 节第 3a 步；改过的集成测试夹具和 Alembic 迁移入口没有对真实 PostgreSQL 跑过，已登记 `docs/untested.md` 第 7.5 节。Bug 2、`git_dirty` 没有做（Barry 只批准了 Bug 1）。修改记录 `docs/changes/T24ah.md` |
 | T24ai | 2026-11-26 | cd1c31c | Windows W9 核对 Bug 2，Barry 于 2026-11-26 批准（“Fix both”）；不带 🔒。只改测试：`backend/tests/unit/test_task_errors.py::test_database_address_is_hidden` 原来真的去连 `127.0.0.1:1`，指望错误文字里带地址；Windows 上得到的是不带地址的 `connection timeout expired`，前置断言失败。改为用真实的异常类型（`sqlalchemy.exc.OperationalError` 包 `psycopg.OperationalError`）包一段写死的文字，文字是 macOS 上同样连接实际得到的原文，存进任务表后的格式与原来逐字相同。被测的 `public_task_error()` 没有改。没有改产品代码、配置、附录 A，没有新依赖。已执行（macOS，main 环境）：该文件 42 项通过；`backend/` 814 passed、241 skipped；ruff 通过。**未测试（Not Tested）**：Windows 上重跑，已登记 `docs/untested.md` 第 7.5 节。修改记录 `docs/changes/T24ai.md` |
+| T24aj | 2026-11-26 | （待填） | Windows W9 核对“其他”第 1 条，Barry 于 2026-11-26 批准（“Fix both”）；不带 🔒。`backend/app/modules/experiments/environment.py` 的 `machine_info()` 改用 `git status --porcelain --untracked-files=no`：未跟踪的文件（Windows 上的 `output/` 等）不再让 `git_dirty` 变成 true，已跟踪文件有未提交改动时仍为 true。`config.json` 的字段和格式不变；以前的实验记录里的 true 可能只是因为有未跟踪文件。没有改表结构、接口、附录 A，没有新依赖。已执行（macOS，main 环境）：新增单元测试 1 项（临时 git 仓库：只有未跟踪目录时为 false，改已跟踪文件后为 true），换回旧代码时失败；`backend/` 815 passed、241 skipped；ruff 通过。**未测试（Not Tested）**：Windows 上实际跑一次实验看 `config.json`，已登记 `docs/untested.md` 第 7.5 节。修改记录 `docs/changes/T24aj.md` |
