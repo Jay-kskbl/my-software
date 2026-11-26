@@ -1486,6 +1486,8 @@ Copy-Item experiments\docvqa\datasets\document_map.csv "$out\missed\document_map
 | W8 16.8 对照组 embed | 实际是重试后 `failed` | 这是设计行为，第 16.8 节的预期已更正，**不重测** |
 | T24v–T24z 登录页 | 在 `fd0b5eb` 之后提交，没有测过 | 第 17.6 节与真实后端联调 |
 
+**2026-11-26 更新（W9 结果，核对见 `docs/changes/windows-2026-11-26-核对.md`）：** 上表第 2–9 步都已完成。还剩：① Barry 本人的 17.7、17.10、17.11；② 17.9 的 backend 6 项——权限已经有了，只是指定的 `--basetemp` 目录不存在，换一个存在的目录重跑（`New-Item -ItemType Directory -Force <目录>` 之后再跑第 12.3 节的命令）；③ 17.6 第 3a 步要等 Bug 1 修复后重测。
+
 **执行顺序（2026-11-25 重排：刚改过、影响最大的代码先验证；各节内容没有变）：**
 
 | 顺序 | 内容 | 谁做 | 依赖 | 预计耗时 |
