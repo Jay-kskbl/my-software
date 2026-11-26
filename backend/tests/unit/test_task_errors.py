@@ -8,10 +8,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+import psycopg
 import pytest
 from shared.tasks import LEASE_EXPIRED_ERROR
 from shared.text_index import OpenSearchClient, TextIndexError
-from sqlalchemy import create_engine
+from sqlalchemy import exc as sa_exc
 
 from app.db.models import ProcessingTask, User
 from app.modules.clip.client import ClipRejected, ClipUnavailable
@@ -87,13 +88,14 @@ def test_server_path_is_hidden():
 
 
 def test_database_address_is_hidden():
-    # 端口 1 上没有服务：得到真实的连接失败异常，文字里带主机名和端口
-    engine = create_engine(
-        "postgresql+psycopg://docmgr:pw@127.0.0.1:1/docmgr", connect_args={"connect_timeout": 2}
+    # 用真实的异常类型包一段写死的驱动错误文字（macOS 上连 127.0.0.1:1 实际得到的原文），
+    # 不真正连接：Windows 上同样的连接得到的是不带地址的“connection timeout expired”，
+    # 前置断言会失败（W9 17.2，T24ai）
+    driver_error = psycopg.OperationalError(
+        'connection failed: connection to server at "127.0.0.1", port 1 failed: '
+        "could not receive data from server: Connection refused"
     )
-    with pytest.raises(Exception) as info:
-        engine.connect()
-    stored = as_stored(info.value)
+    stored = as_stored(sa_exc.OperationalError(None, None, driver_error))
     assert "127.0.0.1" in stored  # 原文确实带着地址，否则这个测试没有意义
 
     public = public_task_error(stored)
